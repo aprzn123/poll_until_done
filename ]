@@ -1,0 +1,28 @@
+use std::{pin::Pin, sync::{Arc, mpsc}, task::{Context, Wake, Waker}};
+
+struct Task<T> {
+    fut: Pin<Box<dyn Future<Output = T> + Send + Sync>>,
+    awakener: mpsc::SyncSender<()>,
+}
+
+impl<T> Wake for Task<T> {
+    fn wake(self: Arc<Self>) {
+        let _ = self.awakener.send(());
+    }
+}
+
+pub fn run<T: 'static>(f: impl Future<Output = T> + 'static + Send + Sync) -> T {
+    let (tx, rx) = mpsc::sync_channel::<()>(1);
+    let task = Arc::new(Task { fut: Box::pin(f), awakener: tx });
+    let waker = Waker::from(task.clone());
+    let mut ctx = Context::from_waker(&waker);
+    loop {
+        task.get_mut() //.fut.as_mut().poll(&mut ctx);
+    }
+    todo!()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+}
