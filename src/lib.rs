@@ -1,4 +1,4 @@
-use std::{pin::Pin, sync::mpsc::{self, SyncSender}, task::{Context, Poll, RawWaker, RawWakerVTable, Waker}};
+use std::{mem, pin::pin, sync::mpsc::{self, SyncSender}, task::{Context, Poll, RawWaker, RawWakerVTable, Waker}};
 
 // Our custom waker doesn't semantically own its SyncSender, it just holds a reference to it.
 // The Waker is dropped before the Sender, so everything is so easy actually.
@@ -33,13 +33,17 @@ impl<T> SyncAwait for T where T: Future + 'static + Send + Sync {
 
         let mut ctx = Context::from_waker(&waker);
 
-        let mut fut = Box::pin(self);
-        loop {
+        let mut fut = pin!(self);
+        let out = loop {
             if let Poll::Ready(v) = fut.as_mut().poll(&mut ctx) {
                 break v;
             }
-            rx.recv();
-        }
+            let _ = rx.recv();
+        };
+        // ensure that tx outlives waker (kept alive by `ctx`, used only until end of loop)
+        // not sure if this is necessary for safety but it certainly doesn't hurt
+        mem::drop(tx);
+        out
     }
 }
 
