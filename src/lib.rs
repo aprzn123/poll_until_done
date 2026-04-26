@@ -45,6 +45,9 @@ impl<T> SyncAwait for T where T: Future + 'static + Send + Sync {
 
 #[cfg(test)]
 mod tests {
+    use futures::join;
+    use futures_time::{task::sleep, time::Duration};
+
     use super::*;
 
     #[test]
@@ -53,5 +56,17 @@ mod tests {
             async {5}.await + 5
         }.run();
         assert_eq!(n, 10);
+    }
+
+    #[test]
+    fn run_two_futures() {
+        let (m, n, _, _) = async { join!(
+            async { async { 5 }.await + 5 }, 
+            async { 1 + async { 1 }.await },
+            sleep(Duration::from_secs(1)),
+            sleep(Duration::from_secs(2)),
+            ) }.run();
+        assert_eq!(m, 10);
+        assert_eq!(n, 2);
     }
 }

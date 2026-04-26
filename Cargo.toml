@@ -3,4 +3,6 @@ name = "poll_until_done"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
+[dev-dependencies]
+futures = "0.3"
+futures-time = "3.0"
