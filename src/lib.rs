@@ -1,9 +1,5 @@
 use std::{pin::Pin, sync::mpsc::{self, SyncSender}, task::{Context, Poll, RawWaker, RawWakerVTable, Waker}};
 
-struct Task<T> {
-    fut: Pin<Box<dyn Future<Output = T> + Send + Sync>>,
-}
-
 // Our custom waker doesn't semantically own its SyncSender, it just holds a reference to it.
 // The Waker is dropped before the Sender, so everything is so easy actually.
 
